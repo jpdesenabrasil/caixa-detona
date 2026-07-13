@@ -1,0 +1,14 @@
+CAIXA DETONA — VERSÃO ONLINE COM SUPABASE
+
+1. Publique todos os arquivos desta pasta em um site (GitHub Pages, Netlify ou hospedagem própria).
+2. Ao abrir, clique em "Criar conta" e cadastre seu e-mail e uma senha.
+3. Caso o Supabase solicite confirmação, confirme pelo e-mail e depois entre.
+4. Use a mesma conta no celular e no computador: os lançamentos serão sincronizados.
+5. Nunca use nem coloque a Secret Key do Supabase no site.
+
+IMPORTANTE SOBRE DADOS ANTIGOS
+Os dados do V5 antigo continuam no IndexedDB do programa antigo e não são apagados.
+A versão online possui o botão "Importar backup" para receber um arquivo JSON de lançamentos.
+
+ARQUIVOS PWA
+manifest.webmanifest e service-worker.js permitem adicionar o site à tela inicial do celular após a publicação.

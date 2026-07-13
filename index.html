@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#000000">
+<title>Caixa Detona</title>
+<link rel="manifest" href="manifest.webmanifest">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --green:#00ef74;
+  --cyan:#00d9df;
+  --red:#ff5b71;
+  --panel:rgba(7,23,16,.76);
+  --line:rgba(255,255,255,.10);
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  min-height:100vh;
+  font-family:"Space Grotesk",Arial,sans-serif;
+  font-weight:700;
+  color:#fff;
+  background:#000;
+  overflow-x:hidden;
+}
+
+button,input,select,textarea{
+  font:inherit;
+}
+
+.bg{
+  position:fixed;
+  inset:0;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at center,rgba(0,255,170,.12),transparent 25%),
+    #000;
+  z-index:-2;
+}
+
+.bg:before,.bg:after{
+  content:"";
+  position:absolute;
+  inset:-20%;
+  background:
+    repeating-radial-gradient(circle,
+      rgba(255,255,255,.03) 0px,
+      rgba(255,255,255,.03) 1px,
+      transparent 1px,
+      transparent 120px);
+  animation:wave 18s ease-in-out infinite alternate;
+}
+
+.bg:after{
+  animation-duration:25s;
+  opacity:.5;
+}
+
+@keyframes wave{
+  from{transform:translateY(-20px) scale(1)}
+  to{transform:translateY(20px) scale(1.08)}
+}
+
+.container{
+  position:relative;
+  z-index:2;
+  width:min(1400px,calc(100% - 36px));
+  margin:0 auto;
+  padding:38px 0 50px;
+}
+
+.logo{
+  height:78px;
+  width:auto;
+  object-fit:contain;
+  margin-bottom:16px;
+}
+
+h1{
+  font-size:clamp(42px,6vw,78px);
+  line-height:.95;
+  margin:0;
+  letter-spacing:-.05em;
+}
+
+.months{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:22px 0 28px;
+}
+
+.month{
+  padding:10px 15px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:rgba(255,255,255,.035);
+  color:rgba(255,255,255,.65);
+  cursor:pointer;
+  transition:.2s ease;
+}
+
+.month:hover,
+.month.active{
+  color:#00140b;
+  background:linear-gradient(90deg,var(--green),var(--cyan));
+  border-color:transparent;
+  transform:translateY(-2px);
+}
+
+.header-row{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:24px;
+  flex-wrap:wrap;
+}
+
+.day{
+  font-size:clamp(34px,5vw,66px);
+  line-height:1;
+  margin-bottom:30px;
+}
+
+.date-nav{
+  display:flex;
+  gap:10px;
+  margin-bottom:30px;
+}
+
+.date-nav button{
+  width:44px;
+  height:44px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.04);
+  color:#fff;
+  cursor:pointer;
+}
+
+.cards{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:20px;
+}
+
+.card{
+  padding:24px;
+  border-radius:24px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  backdrop-filter:blur(12px);
+  box-shadow:0 18px 50px rgba(0,0,0,.22);
+}
+
+.card h3{
+  margin:0;
+  font-size:22px;
+}
+
+.green{color:var(--green)}
+.red{color:var(--red)}
+.cyan{color:var(--cyan)}
+
+.value{
+  font-size:clamp(34px,4vw,52px);
+  margin-top:14px;
+  line-height:1;
+}
+
+.actions{
+  margin-top:28px;
+  display:flex;
+  gap:15px;
+  flex-wrap:wrap;
+}
+
+button.action{
+  padding:17px 26px;
+  border:0;
+  border-radius:16px;
+  font-size:18px;
+  cursor:pointer;
+  transition:.2s ease;
+}
+
+button.action:hover{
+  transform:translateY(-3px);
+}
+
+.primary{
+  background:linear-gradient(90deg,var(--green),var(--cyan));
+  color:#00140b;
+}
+
+.secondary{
+  background:#0b1711;
+  color:#fff;
+  border:1px solid var(--line)!important;
+}
+
+.history{
+  margin-top:34px;
+  padding:22px;
+  border:1px solid var(--line);
+  border-radius:22px;
+  background:rgba(7,23,16,.58);
+  backdrop-filter:blur(12px);
+}
+
+.history h2{
+  margin:0 0 16px;
+  font-size:22px;
+}
+
+.history-list{
+  display:grid;
+  gap:10px;
+}
+
+.record{
+  display:grid;
+  grid-template-columns:auto 1fr auto auto;
+  align-items:center;
+  gap:14px;
+  padding:13px 0;
+  border-top:1px solid var(--line);
+}
+
+.record:first-child{border-top:0}
+
+.badge{
+  padding:7px 10px;
+  border-radius:999px;
+  font-size:12px;
+  text-transform:uppercase;
+}
+
+.badge.in{
+  color:var(--green);
+  background:rgba(0,239,116,.10);
+}
+
+.badge.out{
+  color:var(--red);
+  background:rgba(255,91,113,.10);
+}
+
+.record small{
+  display:block;
+  color:rgba(255,255,255,.5);
+  margin-top:4px;
+}
+
+.delete{
+  border:0;
+  background:transparent;
+  color:var(--red);
+  cursor:pointer;
+  font-size:18px;
+}
+
+.empty{
+  color:rgba(255,255,255,.45);
+  padding:18px 0;
+}
+
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  display:none;
+  place-items:center;
+  padding:18px;
+  background:rgba(0,0,0,.75);
+  backdrop-filter:blur(8px);
+  z-index:100;
+}
+
+.modal-backdrop.open{
+  display:grid;
+}
+
+.modal{
+  width:min(560px,100%);
+  border:1px solid var(--line);
+  border-radius:24px;
+  background:#08120d;
+  box-shadow:0 30px 90px rgba(0,0,0,.55);
+  overflow:hidden;
+}
+
+.modal-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:18px 20px;
+  border-bottom:1px solid var(--line);
+}
+
+.modal-header h2{
+  margin:0;
+}
+
+.close{
+  width:38px;
+  height:38px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:transparent;
+  color:#fff;
+  cursor:pointer;
+}
+
+.form{
+  padding:20px;
+  display:grid;
+  gap:14px;
+}
+
+.field{
+  display:grid;
+  gap:7px;
+}
+
+label{
+  color:rgba(255,255,255,.58);
+  font-size:13px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+input,textarea{
+  width:100%;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#0b1711;
+  color:#fff;
+  padding:13px 14px;
+  outline:none;
+}
+
+textarea{
+  min-height:88px;
+  resize:vertical;
+}
+
+input:focus,textarea:focus{
+  border-color:var(--green);
+  box-shadow:0 0 0 3px rgba(0,239,116,.10);
+}
+
+.form-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:4px;
+}
+
+@media(max-width:850px){
+  .cards{grid-template-columns:1fr}
+  .record{grid-template-columns:auto 1fr auto}
+  .record .delete{grid-column:3}
+}
+
+@media(max-width:560px){
+  .container{width:min(100% - 20px,1400px);padding-top:20px}
+  .logo{height:58px}
+  .months{gap:7px}
+  .month{padding:9px 11px;font-size:13px}
+  .actions{display:grid;grid-template-columns:1fr}
+  button.action{width:100%}
+}
+
+.card-title-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.eye-btn{
+  width:40px;
+  height:40px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.035);
+  color:#fff;
+  cursor:pointer;
+  display:grid;
+  place-items:center;
+  transition:.2s ease;
+}
+
+.eye-btn:hover{
+  transform:translateY(-2px);
+  border-color:rgba(0,239,116,.45);
+}
+
+.eye-btn .eye-closed{
+  display:none;
+}
+
+.eye-btn.hidden-value .eye-open{
+  display:none;
+}
+
+.eye-btn.hidden-value .eye-closed{
+  display:inline;
+}
+
+.private-value{
+  transition:filter .22s ease, opacity .22s ease;
+}
+
+.private-value.is-blurred{
+  filter:blur(12px);
+  opacity:.72;
+  user-select:none;
+  pointer-events:none;
+}
+
+
+.year-row{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex-wrap:wrap;
+  margin:22px 0 10px;
+}
+
+.year-label{
+  color:rgba(255,255,255,.52);
+  font-size:13px;
+  letter-spacing:.10em;
+  text-transform:uppercase;
+}
+
+.years{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.year-btn{
+  padding:9px 14px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:rgba(255,255,255,.035);
+  color:rgba(255,255,255,.65);
+  cursor:pointer;
+  transition:.2s ease;
+}
+
+.year-btn:hover,
+.year-btn.active{
+  color:#00140b;
+  background:linear-gradient(90deg,var(--green),var(--cyan));
+  border-color:transparent;
+  transform:translateY(-2px);
+}
+
+
+/* Login e sincronização online */
+.auth-screen{
+  position:fixed; inset:0; z-index:200; display:grid; place-items:center;
+  padding:20px; background:#000;
+}
+.auth-screen.hidden{display:none}
+.auth-box{
+  width:min(440px,100%); padding:28px; border-radius:26px;
+  background:var(--panel); border:1px solid var(--line);
+  box-shadow:0 30px 90px rgba(0,0,0,.6); backdrop-filter:blur(16px);
+}
+.auth-logo{height:64px; width:auto; margin-bottom:14px}
+.auth-box h2{font-size:34px; margin:0 0 8px}
+.auth-box p{color:rgba(255,255,255,.58); margin:0 0 22px; line-height:1.45}
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
+.auth-tab{padding:11px;border-radius:11px;border:1px solid var(--line);background:#0b1711;color:#fff;cursor:pointer}
+.auth-tab.active{background:linear-gradient(90deg,var(--green),var(--cyan));color:#00140b;border-color:transparent}
+.auth-message{min-height:20px;margin-top:12px;font-size:13px;color:var(--red)}
+.auth-message.ok{color:var(--green)}
+.app-shell.hidden{display:none}
+.account-bar{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.account-email{font-size:12px;color:rgba(255,255,255,.55)}
+.small-btn{padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:#fff;cursor:pointer}
+.sync-status{font-size:12px;color:rgba(255,255,255,.48)}
+.sync-status.error{color:var(--red)}
+.sync-status.ok{color:var(--green)}
+.import-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.import-row .small-btn{flex:1}
+
+</style>
+</head>
+<body>
+<div class="bg"></div>
+
+<section class="auth-screen" id="authScreen">
+  <div class="auth-box">
+    <img src="assets/logo.png" class="auth-logo" alt="Detona Design">
+    <h2>Caixa Detona</h2>
+    <p>Entre na sua conta para acessar os mesmos dados no celular e no computador.</p>
+    <div class="auth-tabs">
+      <button type="button" class="auth-tab active" data-auth-mode="login">Entrar</button>
+      <button type="button" class="auth-tab" data-auth-mode="signup">Criar conta</button>
+    </div>
+    <form id="authForm" class="form" style="padding:0">
+      <div class="field">
+        <label for="authEmail">E-mail</label>
+        <input id="authEmail" type="email" autocomplete="email" required placeholder="seu@email.com">
+      </div>
+      <div class="field">
+        <label for="authPassword">Senha</label>
+        <input id="authPassword" type="password" minlength="6" autocomplete="current-password" required placeholder="Mínimo de 6 caracteres">
+      </div>
+      <button class="action primary" id="authSubmit" type="submit">Entrar</button>
+      <div class="auth-message" id="authMessage"></div>
+    </form>
+  </div>
+</section>
+
+<div class="app-shell hidden" id="appShell">
+<div class="container">
+  <div class="account-bar">
+    <span class="sync-status" id="syncStatus">Conectado</span>
+    <span class="account-email" id="accountEmail"></span>
+    <button type="button" class="small-btn" id="importJsonBtn">Importar backup</button>
+    <input type="file" id="importJsonInput" accept="application/json,.json" hidden>
+    <button type="button" class="small-btn" id="logoutBtn">Sair</button>
+  </div>
+  <img src="assets/logo.png" class="logo" alt="Detona Design">
+
+  <h1>Caixa Detona</h1>
+
+  <div class="year-row">
+    <span class="year-label">Ano</span>
+    <div class="years" id="years"></div>
+  </div>
+
+  <div class="months" id="months"></div>
+
+  <div class="header-row">
+    <div>
+      <div class="day" id="today"></div>
+      <div class="date-nav">
+        <button id="prevDay" aria-label="Dia anterior">←</button>
+        <button id="nextDay" aria-label="Próximo dia">→</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-title-row">
+        <h3>Entrada do dia</h3>
+        <button class="eye-btn" type="button" data-target="dayIncome" aria-label="Ocultar entrada do dia" title="Ocultar/mostrar valor">
+          <span class="eye-open">◉</span>
+          <span class="eye-closed">◌</span>
+        </button>
+      </div>
+      <div class="value green private-value" id="dayIncome">R$ 0,00</div>
+    </div>
+
+    <div class="card">
+      <h3>Saída do dia</h3>
+      <div class="value red" id="dayExpense">R$ 0,00</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title-row">
+        <h3>Saldo do mês</h3>
+        <button class="eye-btn" type="button" data-target="monthBalance" aria-label="Ocultar saldo do mês" title="Ocultar/mostrar valor">
+          <span class="eye-open">◉</span>
+          <span class="eye-closed">◌</span>
+        </button>
+      </div>
+      <div class="value cyan private-value" id="monthBalance">R$ 0,00</div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="action primary" id="incomeBtn">+ Novo lançamento</button>
+    <button class="action secondary" id="expenseBtn">Saída caixa</button>
+  </div>
+
+  <section class="history">
+    <h2>Lançamentos do dia</h2>
+    <div class="history-list" id="historyList"></div>
+  </section>
+</div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Novo lançamento</h2>
+      <button class="close" id="closeModal">✕</button>
+    </div>
+
+    <form class="form" id="recordForm">
+      <div class="field">
+        <label for="valueInput">Valor</label>
+        <input id="valueInput" type="number" min="0.01" step="0.01" placeholder="0,00" required>
+      </div>
+
+      <div class="field">
+        <label for="descriptionInput">Descrição</label>
+        <textarea id="descriptionInput" placeholder="Ex.: arte para cliente, pagamento de fornecedor..."></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="action secondary" id="cancelModal">Cancelar</button>
+        <button type="submit" class="action primary">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://ybirlneogqjhlivekmyr.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_x9Xb3-eAeq1fBGhdRpcbbQ_MdbzftP0";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+let selectedDate = new Date();
+let selectedYear = selectedDate.getFullYear();
+let selectedType = "entrada";
+let allRecords = [];
+let authMode = "login";
+
+const monthNames = [
+  "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+  "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"
+];
+
+function setSyncStatus(text, type=""){
+  const el = document.getElementById("syncStatus");
+  el.textContent = text;
+  el.className = `sync-status ${type}`.trim();
+}
+
+function showAuthMessage(text, ok=false){
+  const el = document.getElementById("authMessage");
+  el.textContent = text;
+  el.className = `auth-message ${ok ? "ok" : ""}`.trim();
+}
+
+function localDateString(date){
+  const y = date.getFullYear();
+  const m = String(date.getMonth()+1).padStart(2,"0");
+  const d = String(date.getDate()).padStart(2,"0");
+  return `${y}-${m}-${d}`;
+}
+
+function money(value){
+  return new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(value)||0);
+}
+
+async function getAll(){
+  setSyncStatus("Sincronizando...");
+  const { data, error } = await sb
+    .from("movimentacoes")
+    .select("id,user_id,tipo,descricao,valor,data,created_at")
+    .order("created_at", { ascending:false });
+  if(error) throw error;
+  setSyncStatus("Sincronizado", "ok");
+  return (data || []).map(r=>({
+    id:r.id,
+    user_id:r.user_id,
+    type:r.tipo,
+    description:r.descricao || "",
+    value:Number(r.valor),
+    date:r.data,
+    createdAt:r.created_at
+  }));
+}
+
+async function addRecord(record){
+  const { data:{ user } } = await sb.auth.getUser();
+  if(!user) throw new Error("Sessão encerrada. Entre novamente.");
+  const { error } = await sb.from("movimentacoes").insert({
+    user_id:user.id,
+    tipo:record.type,
+    descricao:record.description,
+    valor:Number(record.value),
+    data:record.date
+  });
+  if(error) throw error;
+}
+
+async function deleteRecord(id){
+  const { error } = await sb.from("movimentacoes").delete().eq("id",id);
+  if(error) throw error;
+}
+
+function totals(records){
+  const income=records.filter(r=>r.type==="entrada").reduce((s,r)=>s+Number(r.value),0);
+  const expense=records.filter(r=>r.type==="saida").reduce((s,r)=>s+Number(r.value),0);
+  return {income,expense,balance:income-expense};
+}
+
+function renderYears(){
+  const wrapper=document.getElementById("years");
+  wrapper.innerHTML="";
+  for(let year=2026;year<=2030;year++){
+    const button=document.createElement("button");
+    button.type="button";
+    button.className=`year-btn ${year===selectedYear?"active":""}`;
+    button.textContent=year;
+    button.addEventListener("click",()=>{
+      selectedYear=year;
+      const now=new Date();
+      if(year<now.getFullYear()) selectedDate=new Date(year,11,31);
+      else if(year===now.getFullYear()) selectedDate=new Date(year,now.getMonth(),now.getDate());
+      else selectedDate=new Date(year,0,1);
+      renderAll();
+    });
+    wrapper.appendChild(button);
+  }
+}
+
+function renderMonths(){
+  const wrapper=document.getElementById("months");
+  wrapper.innerHTML=monthNames.map((name,index)=>`<button class="month ${index===selectedDate.getMonth()?"active":""}" data-month="${index}">${name}</button>`).join("");
+  wrapper.querySelectorAll("[data-month]").forEach(btn=>btn.addEventListener("click",()=>{
+    const month=Number(btn.dataset.month), now=new Date();
+    if(selectedYear<now.getFullYear()) selectedDate=new Date(selectedYear,month+1,0);
+    else if(selectedYear===now.getFullYear()){
+      if(month<now.getMonth()) selectedDate=new Date(selectedYear,month+1,0);
+      else if(month===now.getMonth()) selectedDate=new Date(selectedYear,month,now.getDate());
+      else selectedDate=new Date(selectedYear,month,1);
+    }else selectedDate=new Date(selectedYear,month,1);
+    renderAll();
+  }));
+}
+
+function escapeHtml(value=""){
+  return String(value).replace(/[&<>'"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[ch]));
+}
+
+function renderAll(){
+  const dateString=localDateString(selectedDate);
+  document.getElementById("today").textContent=`${selectedDate.getDate()} de ${monthNames[selectedDate.getMonth()]}, ${selectedDate.toLocaleDateString("pt-BR",{weekday:"long"})}`;
+  renderYears(); renderMonths();
+  const dayRecords=allRecords.filter(r=>r.date===dateString);
+  const monthRecords=allRecords.filter(r=>{
+    const d=new Date(r.date+"T12:00:00");
+    return d.getFullYear()===selectedDate.getFullYear() && d.getMonth()===selectedDate.getMonth();
+  });
+  const dayTotals=totals(dayRecords), monthTotals=totals(monthRecords);
+  document.getElementById("dayIncome").textContent=money(dayTotals.income);
+  document.getElementById("dayExpense").textContent=money(dayTotals.expense);
+  document.getElementById("monthBalance").textContent=money(monthTotals.balance);
+  const list=document.getElementById("historyList");
+  if(!dayRecords.length){list.innerHTML='<div class="empty">Nenhum lançamento neste dia.</div>';return;}
+  list.innerHTML=dayRecords.map(record=>`<div class="record">
+    <span class="badge ${record.type==="entrada"?"in":"out"}">${record.type}</span>
+    <div><strong>${escapeHtml(record.description||"Sem descrição")}</strong><small>${record.date.split("-").reverse().join("/")}</small></div>
+    <strong class="${record.type==="entrada"?"green":"red"}">${record.type==="entrada"?"+":"-"} ${money(record.value)}</strong>
+    <button class="delete" data-delete="${record.id}" aria-label="Excluir">✕</button>
+  </div>`).join("");
+  list.querySelectorAll("[data-delete]").forEach(btn=>btn.addEventListener("click",async()=>{
+    if(!confirm("Excluir este lançamento?")) return;
+    try{await deleteRecord(btn.dataset.delete);await refresh();}catch(e){alert("Erro ao excluir: "+e.message);}
+  }));
+}
+
+async function refresh(){
+  try{allRecords=await getAll();renderAll();}
+  catch(error){console.error(error);setSyncStatus("Erro de sincronização","error");alert("Não foi possível sincronizar: "+error.message);}
+}
+
+function openModal(type){
+  selectedType=type;
+  document.getElementById("modalTitle").textContent=type==="entrada"?"Novo lançamento":"Saída de caixa";
+  document.getElementById("modalBackdrop").classList.add("open");
+  setTimeout(()=>document.getElementById("valueInput").focus(),100);
+}
+function closeModal(){document.getElementById("modalBackdrop").classList.remove("open");document.getElementById("recordForm").reset();}
+
+document.getElementById("incomeBtn").addEventListener("click",()=>openModal("entrada"));
+document.getElementById("expenseBtn").addEventListener("click",()=>openModal("saida"));
+document.getElementById("closeModal").addEventListener("click",closeModal);
+document.getElementById("cancelModal").addEventListener("click",closeModal);
+document.getElementById("modalBackdrop").addEventListener("click",e=>{if(e.target.id==="modalBackdrop")closeModal();});
+document.getElementById("prevDay").addEventListener("click",()=>{const d=new Date(selectedDate);d.setDate(d.getDate()-1);if(d.getFullYear()>=2026){selectedDate=d;selectedYear=d.getFullYear();renderAll();}});
+document.getElementById("nextDay").addEventListener("click",()=>{const d=new Date(selectedDate);d.setDate(d.getDate()+1);if(d.getFullYear()<=2030){selectedDate=d;selectedYear=d.getFullYear();renderAll();}});
+
+document.getElementById("recordForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+  const value=Number(document.getElementById("valueInput").value);
+  const description=document.getElementById("descriptionInput").value.trim();
+  if(!value||value<=0)return;
+  try{
+    setSyncStatus("Salvando...");
+    await addRecord({date:localDateString(selectedDate),type:selectedType,value,description});
+    closeModal();await refresh();
+  }catch(error){setSyncStatus("Erro ao salvar","error");alert("Não foi possível salvar: "+error.message);}
+});
+
+const privacyState={
+  dayIncome:localStorage.getItem("caixaDetonaBlur_dayIncome")==="1",
+  monthBalance:localStorage.getItem("caixaDetonaBlur_monthBalance")==="1"
+};
+function applyPrivacyState(targetId){
+  const valueEl=document.getElementById(targetId),button=document.querySelector(`.eye-btn[data-target="${targetId}"]`),hidden=Boolean(privacyState[targetId]);
+  if(valueEl)valueEl.classList.toggle("is-blurred",hidden);
+  if(button){button.classList.toggle("hidden-value",hidden);button.setAttribute("aria-label",hidden?"Mostrar valor":"Ocultar valor");}
+}
+document.querySelectorAll(".eye-btn").forEach(button=>{
+  const targetId=button.dataset.target;applyPrivacyState(targetId);
+  button.addEventListener("click",()=>{privacyState[targetId]=!privacyState[targetId];localStorage.setItem(`caixaDetonaBlur_${targetId}`,privacyState[targetId]?"1":"0");applyPrivacyState(targetId);});
+});
+
+function setAuthMode(mode){
+  authMode=mode;
+  document.querySelectorAll("[data-auth-mode]").forEach(b=>b.classList.toggle("active",b.dataset.authMode===mode));
+  document.getElementById("authSubmit").textContent=mode==="login"?"Entrar":"Criar conta";
+  document.getElementById("authPassword").autocomplete=mode==="login"?"current-password":"new-password";
+  showAuthMessage("");
+}
+document.querySelectorAll("[data-auth-mode]").forEach(b=>b.addEventListener("click",()=>setAuthMode(b.dataset.authMode)));
+
+document.getElementById("authForm").addEventListener("submit",async event=>{
+  event.preventDefault();
+  const email=document.getElementById("authEmail").value.trim();
+  const password=document.getElementById("authPassword").value;
+  showAuthMessage(authMode==="login"?"Entrando...":"Criando conta...",true);
+  const result=authMode==="login"
+    ? await sb.auth.signInWithPassword({email,password})
+    : await sb.auth.signUp({email,password});
+  if(result.error){showAuthMessage(result.error.message);return;}
+  if(authMode==="signup" && !result.data.session){showAuthMessage("Conta criada. Confirme o e-mail recebido e depois entre.",true);return;}
+  await showApp(result.data.session);
+});
+
+async function showApp(session){
+  if(!session){
+    document.getElementById("authScreen").classList.remove("hidden");
+    document.getElementById("appShell").classList.add("hidden");
+    return;
+  }
+  document.getElementById("authScreen").classList.add("hidden");
+  document.getElementById("appShell").classList.remove("hidden");
+  document.getElementById("accountEmail").textContent=session.user.email||"";
+  await refresh();
+}
+
+document.getElementById("logoutBtn").addEventListener("click",async()=>{await sb.auth.signOut();allRecords=[];await showApp(null);});
+
+// Importa um backup JSON com registros no formato antigo do Caixa Detona.
+document.getElementById("importJsonBtn").addEventListener("click",()=>document.getElementById("importJsonInput").click());
+document.getElementById("importJsonInput").addEventListener("change",async event=>{
+  const file=event.target.files?.[0]; if(!file)return;
+  try{
+    const parsed=JSON.parse(await file.text());
+    const records=Array.isArray(parsed)?parsed:(parsed.records||parsed.lancamentos||[]);
+    if(!Array.isArray(records)||!records.length)throw new Error("O arquivo não contém lançamentos.");
+    const {data:{user}}=await sb.auth.getUser();
+    const payload=records.map(r=>({
+      user_id:user.id,
+      tipo:r.tipo||r.type,
+      descricao:r.descricao||r.description||"",
+      valor:Number(r.valor??r.value),
+      data:r.data||r.date
+    })).filter(r=>["entrada","saida"].includes(r.tipo)&&r.valor>0&&/^\d{4}-\d{2}-\d{2}$/.test(r.data));
+    if(!payload.length)throw new Error("Nenhum lançamento válido foi encontrado.");
+    const {error}=await sb.from("movimentacoes").insert(payload);if(error)throw error;
+    alert(`${payload.length} lançamentos importados com sucesso.`);await refresh();
+  }catch(error){alert("Não foi possível importar: "+error.message);}
+  event.target.value="";
+});
+
+sb.auth.onAuthStateChange((_event,session)=>{showApp(session);});
+(async function init(){
+  const {data:{session}}=await sb.auth.getSession();
+  await showApp(session);
+  if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("service-worker.js").catch(console.warn);
+})();
+</script>
+
+</body>
+</html>
