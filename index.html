@@ -7,6 +7,7 @@
 <title>Caixa Detona</title>
 <link rel="manifest" href="manifest.webmanifest">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -573,6 +574,87 @@ input:focus,textarea:focus{
 .import-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
 .import-row .small-btn{flex:1}
 
+.history-toolbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-bottom:14px;
+}
+
+.history-filters{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.filter-btn{
+  padding:8px 12px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.035);
+  color:rgba(255,255,255,.68);
+  cursor:pointer;
+  font-size:12px;
+}
+
+.filter-btn.active{
+  color:#00140b;
+  background:linear-gradient(90deg,var(--green),var(--cyan));
+  border-color:transparent;
+}
+
+.export-btn{
+  padding:9px 13px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:#0b1711;
+  color:#fff;
+  cursor:pointer;
+  font-size:12px;
+}
+
+.zero-value{
+  color:rgba(255,255,255,.42)!important;
+  text-shadow:none!important;
+}
+
+.toast{
+  position:fixed;
+  right:22px;
+  bottom:22px;
+  z-index:500;
+  min-width:260px;
+  max-width:min(420px,calc(100% - 44px));
+  padding:14px 16px;
+  border-radius:14px;
+  border:1px solid rgba(0,239,116,.28);
+  background:rgba(8,18,13,.96);
+  color:#fff;
+  box-shadow:0 20px 60px rgba(0,0,0,.45);
+  transform:translateY(24px);
+  opacity:0;
+  pointer-events:none;
+  transition:.24s ease;
+}
+
+.toast.show{
+  transform:translateY(0);
+  opacity:1;
+}
+
+.toast.error{
+  border-color:rgba(255,91,113,.35);
+}
+
+@media(max-width:560px){
+  .history-toolbar{align-items:stretch}
+  .history-filters{width:100%}
+  .filter-btn{flex:1}
+  .export-btn{width:100%}
+}
+
 </style>
 </head>
 <body>
@@ -678,7 +760,17 @@ input:focus,textarea:focus{
   </div>
 
   <section class="history">
-    <h2>Lançamentos do dia</h2>
+    <div class="history-toolbar">
+      <div>
+        <h2 style="margin-bottom:10px">Lançamentos do dia</h2>
+        <div class="history-filters">
+          <button type="button" class="filter-btn active" data-filter="todos">Todos</button>
+          <button type="button" class="filter-btn" data-filter="entrada">Entradas</button>
+          <button type="button" class="filter-btn" data-filter="saida">Saídas</button>
+        </div>
+      </div>
+      <button type="button" class="export-btn" id="exportPdfBtn">Baixar mês em PDF</button>
+    </div>
     <div class="history-list" id="historyList"></div>
   </section>
 </div>
@@ -728,6 +820,8 @@ input:focus,textarea:focus{
   </div>
 </div>
 
+<div class="toast" id="toast"></div>
+
 <script>
 const SUPABASE_URL = "https://ybirlneogqjhlivekmyr.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_x9Xb3-eAeq1fBGhdRpcbbQ_MdbzftP0";
@@ -738,6 +832,9 @@ let selectedYear = selectedDate.getFullYear();
 let selectedType = "entrada";
 let allRecords = [];
 let authMode = "login";
+let historyFilter = "todos";
+let toastTimer = null;
+let editingRecordId = null;
 
 const monthNames = [
   "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
@@ -756,6 +853,15 @@ function showAuthMessage(text, ok=false){
   el.className = `auth-message ${ok ? "ok" : ""}`.trim();
 }
 
+function showToast(message, type="success"){
+  const toast=document.getElementById("toast");
+  toast.textContent=message;
+  toast.className=`toast ${type==="error"?"error":""}`.trim();
+  requestAnimationFrame(()=>toast.classList.add("show"));
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>toast.classList.remove("show"),2600);
+}
+
 function localDateString(date){
   const y = date.getFullYear();
   const m = String(date.getMonth()+1).padStart(2,"0");
@@ -765,6 +871,13 @@ function localDateString(date){
 
 function money(value){
   return new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(value)||0);
+}
+
+function recordTime(record){
+  if(!record.createdAt)return "";
+  const date=new Date(record.createdAt);
+  if(Number.isNaN(date.getTime()))return "";
+  return date.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
 }
 
 async function getAll(){
@@ -870,46 +983,41 @@ function renderAll(){
     return d.getFullYear()===selectedDate.getFullYear() && d.getMonth()===selectedDate.getMonth();
   });
   const dayTotals=totals(dayRecords), monthTotals=totals(monthRecords);
-  document.getElementById("dayIncome").textContent=money(dayTotals.income);
-  document.getElementById("dayExpense").textContent=dayTotals.expense>0?`- ${money(dayTotals.expense)}`:money(0);
+  const dayIncomeEl=document.getElementById("dayIncome");
+  const dayExpenseEl=document.getElementById("dayExpense");
+  const monthBalanceEl=document.getElementById("monthBalance");
+  dayIncomeEl.textContent=money(dayTotals.income);
+  dayIncomeEl.classList.toggle("zero-value",dayTotals.income===0);
+  dayExpenseEl.textContent=dayTotals.expense>0?`- ${money(dayTotals.expense)}`:money(0);
+  dayExpenseEl.classList.toggle("zero-value",dayTotals.expense===0);
   const dayBalanceEl=document.getElementById("dayBalance");
   dayBalanceEl.textContent=money(dayTotals.balance);
-  dayBalanceEl.className=`private-value ${dayTotals.balance>=0?"green":"red"}`;
-  document.getElementById("monthBalance").textContent=money(monthTotals.balance);
+  dayBalanceEl.className=`private-value ${dayTotals.balance>0?"green":dayTotals.balance<0?"red":"zero-value"}`;
+  monthBalanceEl.textContent=money(monthTotals.balance);
+  monthBalanceEl.classList.toggle("zero-value",monthTotals.balance===0);
+
+  const filteredDayRecords=historyFilter==="todos"
+    ? dayRecords
+    : dayRecords.filter(record=>record.type===historyFilter);
+
   const list=document.getElementById("historyList");
-  if(!dayRecords.length){list.innerHTML='<div class="empty">Nenhum lançamento neste dia.</div>';return;}
-  list.innerHTML=dayRecords.map(record=>`<div class="record">
+  if(!filteredDayRecords.length){
+    list.innerHTML=`<div class="empty">${dayRecords.length?"Nenhum lançamento neste filtro.":"Nenhum lançamento neste dia."}</div>`;
+    return;
+  }
+  list.innerHTML=filteredDayRecords.map(record=>`<div class="record">
     <span class="badge ${record.type==="entrada"?"in":"out"}">${record.type}</span>
-    <div><strong>${escapeHtml(record.description||"Sem descrição")}</strong><small>${record.date.split("-").reverse().join("/")}</small></div>
+    <div><strong>${escapeHtml(record.description||"Sem descrição")}</strong><small>${record.date.split("-").reverse().join("/")}${recordTime(record)?` às ${recordTime(record)}`:""}</small></div>
     <strong class="${record.type==="entrada"?"green":"red"}">${record.type==="entrada"?"+":"-"} ${money(record.value)}</strong>
     <div style="display:flex;align-items:center;gap:8px">
-      <button class="small-btn" data-edit="${record.id}" aria-label="Alterar descrição" title="Alterar descrição">✎</button>
+      <button class="small-btn" data-edit="${record.id}" aria-label="Alterar lançamento" title="Alterar lançamento">✎</button>
       <button class="delete" data-delete="${record.id}" aria-label="Excluir">✕</button>
     </div>
   </div>`).join("");
-  list.querySelectorAll("[data-edit]").forEach(btn=>btn.addEventListener("click",async()=>{
+  list.querySelectorAll("[data-edit]").forEach(btn=>btn.addEventListener("click",()=>{
     const record=allRecords.find(r=>String(r.id)===String(btn.dataset.edit));
     if(!record)return;
-
-    const newValueText=prompt("Alterar valor:",String(record.value).replace(".",","));
-    if(newValueText===null)return;
-    const normalizedValue=Number(String(newValueText).replace(/\./g,"").replace(",","."));
-    if(!normalizedValue||normalizedValue<=0){
-      alert("Digite um valor válido.");
-      return;
-    }
-
-    const newDescription=prompt("Alterar descrição:",record.description||"");
-    if(newDescription===null)return;
-
-    try{
-      setSyncStatus("Salvando...");
-      await updateRecord(record.id,normalizedValue,newDescription.trim());
-      await refresh();
-    }catch(e){
-      setSyncStatus("Erro ao salvar","error");
-      alert("Erro ao alterar o lançamento: "+e.message);
-    }
+    openModal(record.type,record);
   }));
   list.querySelectorAll("[data-delete]").forEach(btn=>btn.addEventListener("click",async()=>{
     if(!confirm("Excluir este lançamento?")) return;
@@ -922,13 +1030,35 @@ async function refresh(){
   catch(error){console.error(error);setSyncStatus("Erro de sincronização","error");alert("Não foi possível sincronizar: "+error.message);}
 }
 
-function openModal(type){
+function openModal(type, record=null){
   selectedType=type;
-  document.getElementById("modalTitle").textContent=type==="entrada"?"Novo lançamento":"Saída de caixa";
+  editingRecordId=record?.id||null;
+
+  document.getElementById("modalTitle").textContent=record
+    ? "Alterar lançamento"
+    : (type==="entrada"?"Novo lançamento":"Saída de caixa");
+
+  document.getElementById("valueInput").value=record?Number(record.value):"";
+  document.getElementById("descriptionInput").value=record?(record.description||""):"";
+
+  const submitButton=document.querySelector('#recordForm button[type="submit"]');
+  if(submitButton)submitButton.textContent=record?"Salvar alterações":"Salvar";
+
   document.getElementById("modalBackdrop").classList.add("open");
-  setTimeout(()=>document.getElementById("valueInput").focus(),100);
+  setTimeout(()=>{
+    const input=document.getElementById("valueInput");
+    input.focus();
+    input.select();
+  },100);
 }
-function closeModal(){document.getElementById("modalBackdrop").classList.remove("open");document.getElementById("recordForm").reset();}
+
+function closeModal(){
+  document.getElementById("modalBackdrop").classList.remove("open");
+  document.getElementById("recordForm").reset();
+  editingRecordId=null;
+  const submitButton=document.querySelector('#recordForm button[type="submit"]');
+  if(submitButton)submitButton.textContent="Salvar";
+}
 
 document.getElementById("incomeBtn").addEventListener("click",()=>openModal("entrada"));
 document.getElementById("expenseBtn").addEventListener("click",()=>openModal("saida"));
@@ -942,12 +1072,130 @@ document.getElementById("recordForm").addEventListener("submit",async event=>{
   event.preventDefault();
   const value=Number(document.getElementById("valueInput").value);
   const description=document.getElementById("descriptionInput").value.trim();
-  if(!value||value<=0)return;
+
+  if(!value||value<=0){
+    showToast("Digite um valor válido.","error");
+    return;
+  }
+
   try{
     setSyncStatus("Salvando...");
-    await addRecord({date:localDateString(selectedDate),type:selectedType,value,description});
-    closeModal();await refresh();
-  }catch(error){setSyncStatus("Erro ao salvar","error");alert("Não foi possível salvar: "+error.message);}
+
+    if(editingRecordId){
+      await updateRecord(editingRecordId,value,description);
+      closeModal();
+      await refresh();
+      showToast("✓ Lançamento alterado com sucesso");
+    }else{
+      await addRecord({
+        date:localDateString(selectedDate),
+        type:selectedType,
+        value,
+        description
+      });
+      closeModal();
+      await refresh();
+      showToast("✓ Lançamento salvo com sucesso");
+    }
+  }catch(error){
+    setSyncStatus("Erro ao salvar","error");
+    showToast("Não foi possível salvar: "+error.message,"error");
+  }
+});
+
+
+document.querySelectorAll("[data-filter]").forEach(button=>{
+  button.addEventListener("click",()=>{
+    historyFilter=button.dataset.filter;
+    document.querySelectorAll("[data-filter]").forEach(item=>item.classList.toggle("active",item===button));
+    renderAll();
+  });
+});
+
+document.getElementById("exportPdfBtn").addEventListener("click",()=>{
+  try{
+    const monthRecords=allRecords
+      .filter(record=>{
+        const date=new Date(record.date+"T12:00:00");
+        return date.getFullYear()===selectedDate.getFullYear() && date.getMonth()===selectedDate.getMonth();
+      })
+      .sort((a,b)=>a.date.localeCompare(b.date)||String(a.createdAt||"").localeCompare(String(b.createdAt||"")));
+
+    if(!monthRecords.length){
+      showToast("Não há lançamentos neste mês.","error");
+      return;
+    }
+
+    if(!window.jspdf?.jsPDF){
+      showToast("Não foi possível carregar o gerador de PDF.","error");
+      return;
+    }
+
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({unit:"mm",format:"a4"});
+    const monthTitle=`${monthNames[selectedDate.getMonth()]} de ${selectedDate.getFullYear()}`;
+    const monthTotals=totals(monthRecords);
+
+    let y=18;
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(18);
+    doc.text("Caixa Detona - Relatório mensal",14,y);
+    y+=9;
+
+    doc.setFontSize(12);
+    doc.text(monthTitle,14,y);
+    y+=9;
+
+    doc.setFont("helvetica","normal");
+    doc.text(`Entradas: ${money(monthTotals.income)}`,14,y);
+    y+=6;
+    doc.text(`Saídas: - ${money(monthTotals.expense)}`,14,y);
+    y+=6;
+    doc.text(`Saldo: ${money(monthTotals.balance)}`,14,y);
+    y+=10;
+
+    doc.setDrawColor(210);
+    doc.line(14,y,196,y);
+    y+=7;
+
+    monthRecords.forEach(record=>{
+      const description=(record.description||"Sem descrição").replace(/\s+/g," ").trim();
+      const dateLabel=record.date.split("-").reverse().join("/");
+      const timeLabel=recordTime(record);
+      const valueLabel=`${record.type==="entrada"?"+":"-"} ${money(record.value)}`;
+      const header=`${dateLabel}${timeLabel?` às ${timeLabel}`:""} - ${record.type==="entrada"?"Entrada":"Saída"}`;
+
+      const lines=doc.splitTextToSize(description,130);
+      const needed=8+(lines.length*5);
+
+      if(y+needed>282){
+        doc.addPage();
+        y=18;
+      }
+
+      doc.setFont("helvetica","bold");
+      doc.setFontSize(10);
+      doc.text(header,14,y);
+      doc.text(valueLabel,196,y,{align:"right"});
+      y+=5;
+
+      doc.setFont("helvetica","normal");
+      doc.setFontSize(9);
+      doc.text(lines,14,y);
+      y+=lines.length*5+4;
+
+      doc.setDrawColor(235);
+      doc.line(14,y,196,y);
+      y+=5;
+    });
+
+    const fileName=`caixa-detona-${selectedDate.getFullYear()}-${String(selectedDate.getMonth()+1).padStart(2,"0")}.pdf`;
+    doc.save(fileName);
+    showToast("✓ PDF do mês baixado com sucesso");
+  }catch(error){
+    console.error(error);
+    showToast("Erro ao gerar PDF: "+error.message,"error");
+  }
 });
 
 const privacyState={
