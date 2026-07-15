@@ -100,11 +100,13 @@ h1{
 }
 
 .month{
-  padding:10px 15px;
+  padding:7px 11px;
   border:1px solid var(--line);
-  border-radius:12px;
+  border-radius:10px;
+  font-size:13px;
   background:rgba(255,255,255,.035);
   color:rgba(255,255,255,.65);
+  font-size:13px;
   cursor:pointer;
   transition:.2s ease;
 }
@@ -168,8 +170,80 @@ h1{
 }
 
 .green{color:var(--green)}
-.red{color:var(--red)}
+.red{color:#ff2f4f}
+.green{color:#00ff7f}
 .cyan{color:var(--cyan)}
+
+.record .red{
+  color:#ff2f4f;
+  text-shadow:0 0 14px rgba(255,47,79,.24);
+}
+
+.record .green{
+  color:#00ff7f;
+  text-shadow:0 0 14px rgba(0,255,127,.20);
+}
+
+.day-balance-mini{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-top:14px;
+  font-size:13px;
+  color:rgba(255,255,255,.58);
+}
+
+.day-balance-mini strong{
+  font-size:16px;
+}
+
+.search-btn{
+  width:44px;
+  height:44px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.04);
+  color:#fff;
+  cursor:pointer;
+  display:grid;
+  place-items:center;
+  font-size:18px;
+}
+
+.search-btn:hover{
+  border-color:rgba(0,239,116,.45);
+  transform:translateY(-2px);
+}
+
+.search-results{
+  display:grid;
+  gap:10px;
+  max-height:360px;
+  overflow:auto;
+  margin-top:6px;
+}
+
+.search-result{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  gap:12px;
+  align-items:center;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:rgba(255,255,255,.025);
+  cursor:pointer;
+}
+
+.search-result:hover{
+  border-color:rgba(0,239,116,.35);
+}
+
+.search-result small{
+  display:block;
+  color:rgba(255,255,255,.48);
+  margin-top:4px;
+}
 
 .value{
   font-size:clamp(34px,4vw,52px);
@@ -452,7 +526,7 @@ input:focus,textarea:focus{
 }
 
 .year-btn{
-  padding:9px 14px;
+  padding:6px 10px;
   border:1px solid var(--line);
   border-radius:11px;
   background:rgba(255,255,255,.035);
@@ -554,6 +628,7 @@ input:focus,textarea:focus{
       <div class="date-nav">
         <button id="prevDay" aria-label="Dia anterior">←</button>
         <button id="nextDay" aria-label="Próximo dia">→</button>
+        <button class="search-btn" id="openSearch" type="button" aria-label="Pesquisar lançamentos" title="Pesquisar lançamentos">⌕</button>
       </div>
     </div>
   </div>
@@ -571,8 +646,18 @@ input:focus,textarea:focus{
     </div>
 
     <div class="card">
-      <h3>Saída do dia</h3>
-      <div class="value red" id="dayExpense">R$ 0,00</div>
+      <div class="card-title-row">
+        <h3>Saída do dia</h3>
+        <button class="eye-btn" type="button" data-target="dayExpense" aria-label="Ocultar saída do dia" title="Ocultar/mostrar valor">
+          <span class="eye-open">◉</span>
+          <span class="eye-closed">◌</span>
+        </button>
+      </div>
+      <div class="value red private-value" id="dayExpense">R$ 0,00</div>
+      <div class="day-balance-mini">
+        <span>Saldo do dia</span>
+        <strong class="private-value" id="dayBalance">R$ 0,00</strong>
+      </div>
     </div>
 
     <div class="card">
@@ -622,6 +707,24 @@ input:focus,textarea:focus{
         <button type="submit" class="action primary">Salvar</button>
       </div>
     </form>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="searchBackdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Pesquisar lançamentos</h2>
+      <button class="close" id="closeSearch">✕</button>
+    </div>
+    <div class="form">
+      <div class="field">
+        <label for="searchInput">Descrição, valor ou data</label>
+        <input id="searchInput" type="search" placeholder="Ex.: cliente, 150 ou 12/07/2026">
+      </div>
+      <div class="search-results" id="searchResults">
+        <div class="empty">Digite algo para pesquisar.</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -701,10 +804,13 @@ async function deleteRecord(id){
   if(error) throw error;
 }
 
-async function updateRecordDescription(id, description){
+async function updateRecord(id, value, description){
   const { error } = await sb
     .from("movimentacoes")
-    .update({ descricao:description })
+    .update({
+      valor:Number(value),
+      descricao:description
+    })
     .eq("id",id);
   if(error) throw error;
 }
@@ -766,6 +872,9 @@ function renderAll(){
   const dayTotals=totals(dayRecords), monthTotals=totals(monthRecords);
   document.getElementById("dayIncome").textContent=money(dayTotals.income);
   document.getElementById("dayExpense").textContent=dayTotals.expense>0?`- ${money(dayTotals.expense)}`:money(0);
+  const dayBalanceEl=document.getElementById("dayBalance");
+  dayBalanceEl.textContent=money(dayTotals.balance);
+  dayBalanceEl.className=`private-value ${dayTotals.balance>=0?"green":"red"}`;
   document.getElementById("monthBalance").textContent=money(monthTotals.balance);
   const list=document.getElementById("historyList");
   if(!dayRecords.length){list.innerHTML='<div class="empty">Nenhum lançamento neste dia.</div>';return;}
@@ -781,15 +890,25 @@ function renderAll(){
   list.querySelectorAll("[data-edit]").forEach(btn=>btn.addEventListener("click",async()=>{
     const record=allRecords.find(r=>String(r.id)===String(btn.dataset.edit));
     if(!record)return;
+
+    const newValueText=prompt("Alterar valor:",String(record.value).replace(".",","));
+    if(newValueText===null)return;
+    const normalizedValue=Number(String(newValueText).replace(/\./g,"").replace(",","."));
+    if(!normalizedValue||normalizedValue<=0){
+      alert("Digite um valor válido.");
+      return;
+    }
+
     const newDescription=prompt("Alterar descrição:",record.description||"");
     if(newDescription===null)return;
+
     try{
       setSyncStatus("Salvando...");
-      await updateRecordDescription(record.id,newDescription.trim());
+      await updateRecord(record.id,normalizedValue,newDescription.trim());
       await refresh();
     }catch(e){
       setSyncStatus("Erro ao salvar","error");
-      alert("Erro ao alterar a descrição: "+e.message);
+      alert("Erro ao alterar o lançamento: "+e.message);
     }
   }));
   list.querySelectorAll("[data-delete]").forEach(btn=>btn.addEventListener("click",async()=>{
@@ -833,17 +952,89 @@ document.getElementById("recordForm").addEventListener("submit",async event=>{
 
 const privacyState={
   dayIncome:localStorage.getItem("caixaDetonaBlur_dayIncome")==="1",
+  dayExpense:localStorage.getItem("caixaDetonaBlur_dayExpense")==="1",
   monthBalance:localStorage.getItem("caixaDetonaBlur_monthBalance")==="1"
 };
 function applyPrivacyState(targetId){
   const valueEl=document.getElementById(targetId),button=document.querySelector(`.eye-btn[data-target="${targetId}"]`),hidden=Boolean(privacyState[targetId]);
   if(valueEl)valueEl.classList.toggle("is-blurred",hidden);
+  if(targetId==="dayExpense"){
+    const dayBalance=document.getElementById("dayBalance");
+    if(dayBalance)dayBalance.classList.toggle("is-blurred",hidden);
+  }
   if(button){button.classList.toggle("hidden-value",hidden);button.setAttribute("aria-label",hidden?"Mostrar valor":"Ocultar valor");}
 }
 document.querySelectorAll(".eye-btn").forEach(button=>{
   const targetId=button.dataset.target;applyPrivacyState(targetId);
   button.addEventListener("click",()=>{privacyState[targetId]=!privacyState[targetId];localStorage.setItem(`caixaDetonaBlur_${targetId}`,privacyState[targetId]?"1":"0");applyPrivacyState(targetId);});
 });
+
+
+function normalizeSearch(value=""){
+  return String(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g,"")
+    .trim();
+}
+
+function renderSearchResults(){
+  const query=normalizeSearch(document.getElementById("searchInput").value);
+  const results=document.getElementById("searchResults");
+  if(!query){
+    results.innerHTML='<div class="empty">Digite algo para pesquisar.</div>';
+    return;
+  }
+
+  const matches=allRecords.filter(record=>{
+    const formattedDate=record.date.split("-").reverse().join("/");
+    const valueText=Number(record.value).toFixed(2).replace(".",",");
+    const haystack=normalizeSearch(`${record.description||"Sem descrição"} ${record.type} ${record.date} ${formattedDate} ${valueText} ${money(record.value)}`);
+    return haystack.includes(query);
+  }).slice(0,50);
+
+  if(!matches.length){
+    results.innerHTML='<div class="empty">Nenhum lançamento encontrado.</div>';
+    return;
+  }
+
+  results.innerHTML=matches.map(record=>`
+    <div class="search-result" data-search-date="${record.date}">
+      <span class="badge ${record.type==="entrada"?"in":"out"}">${record.type}</span>
+      <div>
+        <strong>${escapeHtml(record.description||"Sem descrição")}</strong>
+        <small>${record.date.split("-").reverse().join("/")}</small>
+      </div>
+      <strong class="${record.type==="entrada"?"green":"red"}">${record.type==="entrada"?"+":"-"} ${money(record.value)}</strong>
+    </div>
+  `).join("");
+
+  results.querySelectorAll("[data-search-date]").forEach(item=>item.addEventListener("click",()=>{
+    selectedDate=new Date(item.dataset.searchDate+"T12:00:00");
+    selectedYear=selectedDate.getFullYear();
+    renderAll();
+    closeSearchModal();
+  }));
+}
+
+function openSearchModal(){
+  document.getElementById("searchBackdrop").classList.add("open");
+  const input=document.getElementById("searchInput");
+  input.value="";
+  renderSearchResults();
+  setTimeout(()=>input.focus(),100);
+}
+
+function closeSearchModal(){
+  document.getElementById("searchBackdrop").classList.remove("open");
+}
+
+document.getElementById("openSearch").addEventListener("click",openSearchModal);
+document.getElementById("closeSearch").addEventListener("click",closeSearchModal);
+document.getElementById("searchBackdrop").addEventListener("click",event=>{
+  if(event.target.id==="searchBackdrop")closeSearchModal();
+});
+document.getElementById("searchInput").addEventListener("input",renderSearchResults);
 
 function setAuthMode(mode){
   authMode=mode;
