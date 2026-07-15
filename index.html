@@ -884,6 +884,220 @@ body.light-mode .toast{
   min-width:240px;
 }
 
+
+.selectors-row{
+  display:flex;
+  gap:14px;
+  margin:22px 0 28px;
+  flex-wrap:wrap;
+}
+
+.selector-box{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.modern-select{
+  min-width:180px;
+  padding:12px 16px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.04);
+  color:#fff;
+  font-family:"Space Grotesk",Arial,sans-serif;
+  cursor:pointer;
+}
+
+.modern-select option{
+  background:#08120d;
+  color:#fff;
+}
+
+
+/* Seletores glass/neon */
+.selectors-row{
+  display:flex;
+  gap:14px;
+  margin:20px 0 24px;
+  flex-wrap:wrap;
+}
+
+.selector-box{
+  position:relative;
+  min-width:190px;
+  padding:10px 12px 12px;
+  border-radius:18px;
+  border:1px solid rgba(0,239,116,.22);
+  background:
+    linear-gradient(180deg,rgba(12,31,22,.72),rgba(5,18,12,.78));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    0 12px 30px rgba(0,0,0,.28),
+    0 0 22px rgba(0,239,116,.06);
+  backdrop-filter:blur(14px);
+  overflow:hidden;
+}
+
+.selector-box::before{
+  content:"";
+  position:absolute;
+  inset:-40% auto auto -10%;
+  width:120px;
+  height:120px;
+  border-radius:50%;
+  background:rgba(0,239,116,.10);
+  filter:blur(28px);
+  pointer-events:none;
+}
+
+.selector-month{
+  border-color:rgba(0,217,223,.22);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    0 12px 30px rgba(0,0,0,.28),
+    0 0 22px rgba(0,217,223,.06);
+}
+
+.selector-month::before{
+  background:rgba(0,217,223,.10);
+}
+
+.selector-label{
+  position:relative;
+  z-index:1;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin-bottom:7px;
+  color:rgba(255,255,255,.58);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.10em;
+}
+
+.selector-icon{
+  display:grid;
+  place-items:center;
+  width:24px;
+  height:24px;
+  border-radius:8px;
+  color:var(--green);
+  background:rgba(0,239,116,.09);
+  border:1px solid rgba(0,239,116,.16);
+  font-size:14px;
+}
+
+.selector-month .selector-icon{
+  color:var(--cyan);
+  background:rgba(0,217,223,.09);
+  border-color:rgba(0,217,223,.16);
+}
+
+.modern-select{
+  position:relative;
+  z-index:1;
+  width:100%;
+  min-width:0;
+  padding:12px 42px 12px 14px;
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,.10);
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.025));
+  color:#fff;
+  font-family:"Space Grotesk",Arial,sans-serif;
+  font-size:16px;
+  cursor:pointer;
+  outline:none;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
+  transition:.2s ease;
+}
+
+.modern-select:hover,
+.modern-select:focus{
+  border-color:rgba(0,239,116,.42);
+  box-shadow:
+    0 0 0 3px rgba(0,239,116,.07),
+    inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.selector-month .modern-select:hover,
+.selector-month .modern-select:focus{
+  border-color:rgba(0,217,223,.42);
+  box-shadow:
+    0 0 0 3px rgba(0,217,223,.07),
+    inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.modern-select option{
+  background:#08120d;
+  color:#fff;
+}
+
+/* Meta de faturamento mais compacta */
+.goal-card{
+  margin-top:42px!important;
+  padding:11px 14px!important;
+  border-radius:18px!important;
+}
+
+.goal-head{
+  gap:10px;
+}
+
+.goal-head h2{
+  font-size:18px!important;
+  margin-bottom:3px!important;
+}
+
+.goal-head small{
+  font-size:11px;
+}
+
+.goal-input{
+  width:145px!important;
+  padding:8px 10px!important;
+  font-size:13px;
+}
+
+.goal-progress{
+  height:7px!important;
+  margin-top:10px!important;
+}
+
+.goal-meta{
+  margin-top:7px!important;
+  font-size:11px!important;
+}
+
+.goal-card .eye-btn{
+  width:34px;
+  height:34px;
+  border-radius:10px;
+}
+
+@media(max-width:560px){
+  .selectors-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+  }
+
+  .selector-box{
+    min-width:0;
+    padding:9px 10px 10px;
+  }
+
+  .modern-select{
+    font-size:14px;
+    padding:10px 34px 10px 12px;
+  }
+
+  .goal-card{
+    margin-top:36px!important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -929,12 +1143,17 @@ body.light-mode .toast{
 
   <h1>Caixa Detona</h1>
 
-  <div class="year-row">
-    <span class="year-label">Ano</span>
-    <div class="years" id="years"></div>
-  </div>
+  <div class="selectors-row">
+    <div class="selector-box selector-year">
+      <span class="selector-label"><span class="selector-icon">◷</span> Ano</span>
+      <select id="yearSelect" class="modern-select"></select>
+    </div>
 
-  <div class="months" id="months"></div>
+    <div class="selector-box selector-month">
+      <span class="selector-label"><span class="selector-icon">▦</span> Mês</span>
+      <select id="monthSelect" class="modern-select"></select>
+    </div>
+  </div>
 
   <div class="header-row">
     <div>
@@ -1291,40 +1510,45 @@ function totals(records){
   return {income,expense,balance:income-expense};
 }
 
+
 function renderYears(){
-  const wrapper=document.getElementById("years");
-  wrapper.innerHTML="";
+  const select=document.getElementById("yearSelect");
+  if(!select)return;
+  select.innerHTML="";
   for(let year=2026;year<=2030;year++){
-    const button=document.createElement("button");
-    button.type="button";
-    button.className=`year-btn ${year===selectedYear?"active":""}`;
-    button.textContent=year;
-    button.addEventListener("click",()=>{
-      selectedYear=year;
-      const now=new Date();
-      if(year<now.getFullYear()) selectedDate=new Date(year,11,31);
-      else if(year===now.getFullYear()) selectedDate=new Date(year,now.getMonth(),now.getDate());
-      else selectedDate=new Date(year,0,1);
-      renderAll();
-    });
-    wrapper.appendChild(button);
+    const opt=document.createElement("option");
+    opt.value=year;
+    opt.textContent=year;
+    if(year===selectedYear) opt.selected=true;
+    select.appendChild(opt);
   }
 }
 
 function renderMonths(){
-  const wrapper=document.getElementById("months");
-  wrapper.innerHTML=monthNames.map((name,index)=>`<button class="month ${index===selectedDate.getMonth()?"active":""}" data-month="${index}">${name}</button>`).join("");
-  wrapper.querySelectorAll("[data-month]").forEach(btn=>btn.addEventListener("click",()=>{
-    const month=Number(btn.dataset.month), now=new Date();
-    if(selectedYear<now.getFullYear()) selectedDate=new Date(selectedYear,month+1,0);
-    else if(selectedYear===now.getFullYear()){
-      if(month<now.getMonth()) selectedDate=new Date(selectedYear,month+1,0);
-      else if(month===now.getMonth()) selectedDate=new Date(selectedYear,month,now.getDate());
-      else selectedDate=new Date(selectedYear,month,1);
-    }else selectedDate=new Date(selectedYear,month,1);
-    renderAll();
-  }));
+  const select=document.getElementById("monthSelect");
+  if(!select)return;
+  select.innerHTML="";
+  monthNames.forEach((name,index)=>{
+    const opt=document.createElement("option");
+    opt.value=index;
+    opt.textContent=name;
+    if(index===selectedDate.getMonth()) opt.selected=true;
+    select.appendChild(opt);
+  });
 }
+
+document.addEventListener("change",e=>{
+  if(e.target.id==="yearSelect"){
+    selectedYear=Number(e.target.value);
+    selectedDate.setFullYear(selectedYear);
+    renderAll();
+  }
+
+  if(e.target.id==="monthSelect"){
+    selectedDate.setMonth(Number(e.target.value));
+    renderAll();
+  }
+});
 
 function escapeHtml(value=""){
   return String(value).replace(/[&<>'"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[ch]));
