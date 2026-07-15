@@ -701,6 +701,14 @@ async function deleteRecord(id){
   if(error) throw error;
 }
 
+async function updateRecordDescription(id, description){
+  const { error } = await sb
+    .from("movimentacoes")
+    .update({ descricao:description })
+    .eq("id",id);
+  if(error) throw error;
+}
+
 function totals(records){
   const income=records.filter(r=>r.type==="entrada").reduce((s,r)=>s+Number(r.value),0);
   const expense=records.filter(r=>r.type==="saida").reduce((s,r)=>s+Number(r.value),0);
@@ -757,7 +765,7 @@ function renderAll(){
   });
   const dayTotals=totals(dayRecords), monthTotals=totals(monthRecords);
   document.getElementById("dayIncome").textContent=money(dayTotals.income);
-  document.getElementById("dayExpense").textContent=money(dayTotals.expense);
+  document.getElementById("dayExpense").textContent=dayTotals.expense>0?`- ${money(dayTotals.expense)}`:money(0);
   document.getElementById("monthBalance").textContent=money(monthTotals.balance);
   const list=document.getElementById("historyList");
   if(!dayRecords.length){list.innerHTML='<div class="empty">Nenhum lançamento neste dia.</div>';return;}
@@ -765,8 +773,25 @@ function renderAll(){
     <span class="badge ${record.type==="entrada"?"in":"out"}">${record.type}</span>
     <div><strong>${escapeHtml(record.description||"Sem descrição")}</strong><small>${record.date.split("-").reverse().join("/")}</small></div>
     <strong class="${record.type==="entrada"?"green":"red"}">${record.type==="entrada"?"+":"-"} ${money(record.value)}</strong>
-    <button class="delete" data-delete="${record.id}" aria-label="Excluir">✕</button>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="small-btn" data-edit="${record.id}" aria-label="Alterar descrição" title="Alterar descrição">✎</button>
+      <button class="delete" data-delete="${record.id}" aria-label="Excluir">✕</button>
+    </div>
   </div>`).join("");
+  list.querySelectorAll("[data-edit]").forEach(btn=>btn.addEventListener("click",async()=>{
+    const record=allRecords.find(r=>String(r.id)===String(btn.dataset.edit));
+    if(!record)return;
+    const newDescription=prompt("Alterar descrição:",record.description||"");
+    if(newDescription===null)return;
+    try{
+      setSyncStatus("Salvando...");
+      await updateRecordDescription(record.id,newDescription.trim());
+      await refresh();
+    }catch(e){
+      setSyncStatus("Erro ao salvar","error");
+      alert("Erro ao alterar a descrição: "+e.message);
+    }
+  }));
   list.querySelectorAll("[data-delete]").forEach(btn=>btn.addEventListener("click",async()=>{
     if(!confirm("Excluir este lançamento?")) return;
     try{await deleteRecord(btn.dataset.delete);await refresh();}catch(e){alert("Erro ao excluir: "+e.message);}
