@@ -129,7 +129,7 @@ h1{
 }
 
 .day{
-  font-size:clamp(34px,5vw,66px);
+  font-size:clamp(25px,3.4vw,46px);
   line-height:1;
   margin-bottom:30px;
 }
@@ -655,6 +655,208 @@ input:focus,textarea:focus{
   .export-btn{width:100%}
 }
 
+.top-tools{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-bottom:12px;
+}
+
+.theme-toggle{
+  width:44px;
+  height:44px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.04);
+  color:#fff;
+  cursor:pointer;
+  font-size:18px;
+}
+
+.goal-card,
+.notes-card,
+.week-calendar{
+  margin:0 0 18px;
+  padding:14px 16px;
+  border:1px solid var(--line);
+  border-radius:22px;
+  background:rgba(7,23,16,.58);
+  backdrop-filter:blur(12px);
+}
+
+.goal-head,
+.week-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.goal-input{
+  width:170px;
+  padding:10px 12px;
+}
+
+.goal-progress{
+  height:14px;
+  border-radius:999px;
+  background:rgba(255,255,255,.08);
+  overflow:hidden;
+  margin-top:14px;
+}
+
+.goal-progress-bar{
+  height:100%;
+  width:0%;
+  border-radius:999px;
+  background:linear-gradient(90deg,var(--green),var(--cyan));
+  transition:width .35s ease;
+}
+
+.goal-meta{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:10px;
+  font-size:13px;
+  color:rgba(255,255,255,.58);
+}
+
+.notes-card textarea{
+  min-height:110px;
+}
+
+.week-nav{
+  display:flex;
+  gap:8px;
+}
+
+.week-nav button{
+  width:34px;
+  height:34px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.04);
+  color:#fff;
+  cursor:pointer;
+}
+
+.week-days{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:6px;
+  margin-top:10px;
+}
+
+.week-day{
+  padding:8px 5px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  background:rgba(255,255,255,.025);
+  color:#fff;
+  cursor:pointer;
+  text-align:center;
+}
+
+.week-day.active{
+  background:linear-gradient(90deg,var(--green),var(--cyan));
+  color:#00140b;
+  border-color:transparent;
+}
+
+.week-day .weekday{
+  display:block;
+  font-size:9px;
+  opacity:.65;
+  margin-bottom:6px;
+}
+
+.week-day .daynum{
+  display:block;
+  font-size:15px;
+}
+
+.week-day .dots{
+  min-height:12px;
+  margin-top:6px;
+  font-size:10px;
+}
+
+.dot-in{color:#00ff7f}
+.dot-out{color:#ff2f4f}
+
+body.light-mode{
+  color:#0c1712;
+  background:#eef5f1;
+}
+
+body.light-mode .bg{
+  background:
+    radial-gradient(circle at center,rgba(0,190,120,.10),transparent 28%),
+    #eef5f1;
+}
+
+body.light-mode .card,
+body.light-mode .history,
+body.light-mode .goal-card,
+body.light-mode .notes-card,
+body.light-mode .week-calendar,
+body.light-mode .auth-box{
+  background:rgba(255,255,255,.84);
+  border-color:rgba(0,0,0,.10);
+}
+
+body.light-mode .month,
+body.light-mode .year-btn,
+body.light-mode .small-btn,
+body.light-mode .filter-btn,
+body.light-mode .export-btn,
+body.light-mode .theme-toggle,
+body.light-mode .week-nav button,
+body.light-mode .date-nav button,
+body.light-mode .search-btn,
+body.light-mode .eye-btn,
+body.light-mode .week-day{
+  background:rgba(255,255,255,.78);
+  color:#0c1712;
+  border-color:rgba(0,0,0,.10);
+}
+
+body.light-mode input,
+body.light-mode textarea{
+  background:#fff;
+  color:#0c1712;
+  border-color:rgba(0,0,0,.12);
+}
+
+body.light-mode label,
+body.light-mode .goal-meta,
+body.light-mode .account-email,
+body.light-mode .sync-status,
+body.light-mode .record small{
+  color:rgba(12,23,18,.58);
+}
+
+body.light-mode .secondary{
+  background:#fff;
+  color:#0c1712;
+}
+
+body.light-mode .toast{
+  background:rgba(255,255,255,.97);
+  color:#0c1712;
+}
+
+@media(max-width:700px){
+  .week-days{gap:5px}
+  .week-day{padding:10px 4px}
+  .week-day .weekday{font-size:9px}
+  .week-day .daynum{font-size:16px}
+  .goal-head{align-items:stretch}
+  .goal-input{width:100%}
+}
+
 </style>
 </head>
 <body>
@@ -686,6 +888,9 @@ input:focus,textarea:focus{
 
 <div class="app-shell hidden" id="appShell">
 <div class="container">
+  <div class="top-tools">
+    <button type="button" class="theme-toggle" id="themeToggle" aria-label="Alternar tema" title="Alternar tema">☀️</button>
+  </div>
   <div class="account-bar">
     <span class="sync-status" id="syncStatus">Conectado</span>
     <span class="account-email" id="accountEmail"></span>
@@ -707,13 +912,22 @@ input:focus,textarea:focus{
   <div class="header-row">
     <div>
       <div class="day" id="today"></div>
-      <div class="date-nav">
-        <button id="prevDay" aria-label="Dia anterior">←</button>
-        <button id="nextDay" aria-label="Próximo dia">→</button>
-        <button class="search-btn" id="openSearch" type="button" aria-label="Pesquisar lançamentos" title="Pesquisar lançamentos">⌕</button>
-      </div>
     </div>
   </div>
+
+  <section class="week-calendar">
+    <div class="week-head">
+      <div>
+        <h2 style="margin:0">Calendário semanal</h2>
+        <small id="weekRange" style="color:rgba(255,255,255,.5)"></small>
+      </div>
+      <div class="week-nav">
+        <button type="button" id="prevWeek" aria-label="Semana anterior">←</button>
+        <button type="button" id="nextWeek" aria-label="Próxima semana">→</button>
+      </div>
+    </div>
+    <div class="week-days" id="weekDays"></div></div>
+  </section>
 
   <div class="cards">
     <div class="card">
@@ -753,6 +967,33 @@ input:focus,textarea:focus{
       <div class="value cyan private-value" id="monthBalance">R$ 0,00</div>
     </div>
   </div>
+
+
+
+  <section class="goal-card">
+    <div class="goal-head">
+      <div>
+        <div class="card-title-row">
+          <h2 style="margin:0 0 6px">Meta de faturamento</h2>
+          <button class="eye-btn" type="button" data-target="goalArea">
+            <span class="eye-open">◉</span>
+            <span class="eye-closed">◌</span>
+          </button>
+        </div>
+        <small style="color:rgba(255,255,255,.5)">A porcentagem muda conforme o Saldo do mês.</small>
+      </div>
+      <input class="goal-input" id="monthlyGoalInput" type="number" min="0" step="100" placeholder="Ex.: 10000">
+    </div>
+    <div id="goalArea" class="private-value"><div class="goal-progress">
+      <div class="goal-progress-bar" id="goalProgressBar"></div>
+    </div>
+    <div class="goal-meta">
+      <span id="goalCurrent">R$ 0,00 de R$ 0,00</span>
+      <strong id="goalPercent">0%</strong>
+    </div>
+  </section>
+
+  
 
   <div class="actions">
     <button class="action primary" id="incomeBtn">+ Novo lançamento</button>
@@ -835,6 +1076,7 @@ let authMode = "login";
 let historyFilter = "todos";
 let toastTimer = null;
 let editingRecordId = null;
+let weekAnchorDate = new Date(selectedDate);
 
 const monthNames = [
   "Janeiro","Fevereiro","Março","Abril","Maio","Junho",
@@ -879,6 +1121,84 @@ function recordTime(record){
   if(Number.isNaN(date.getTime()))return "";
   return date.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
 }
+
+function getGoalStorageKey(){
+  return `caixaDetonaGoal_${selectedDate.getFullYear()}_${selectedDate.getMonth()+1}`;
+}
+
+function getNoteStorageKey(date=selectedDate){
+  return `caixaDetonaNote_${localDateString(date)}`;
+}
+
+function getWeekStart(date){
+  const result=new Date(date);
+  const day=result.getDay();
+  const diff=day===0?-6:1-day;
+  result.setDate(result.getDate()+diff);
+  result.setHours(12,0,0,0);
+  return result;
+}
+
+function renderWeekCalendar(){
+  const wrapper=document.getElementById("weekDays");
+  if(!wrapper)return;
+
+  const start=getWeekStart(weekAnchorDate);
+  const end=new Date(start);
+  end.setDate(start.getDate()+6);
+
+  document.getElementById("weekRange").textContent=
+    `${start.toLocaleDateString("pt-BR",{day:"2-digit",month:"short"})} — ${end.toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"})}`;
+
+  const labels=["SEG","TER","QUA","QUI","SEX","SÁB","DOM"];
+  wrapper.innerHTML="";
+
+  for(let i=0;i<7;i++){
+    const day=new Date(start);
+    day.setDate(start.getDate()+i);
+    const dateString=localDateString(day);
+    const records=allRecords.filter(record=>record.date===dateString);
+    const hasIncome=records.some(record=>record.type==="entrada");
+    const hasExpense=records.some(record=>record.type==="saida");
+
+    const button=document.createElement("button");
+    button.type="button";
+    button.className=`week-day ${dateString===localDateString(selectedDate)?"active":""}`;
+    button.innerHTML=`
+      <span class="weekday">${labels[i]}</span>
+      <span class="daynum">${day.getDate()}</span>
+      <span class="dots">
+        ${hasIncome?'<span class="dot-in">●</span>':""}
+        ${hasExpense?'<span class="dot-out">●</span>':""}
+      </span>
+    `;
+    button.addEventListener("click",()=>{
+      selectedDate=new Date(day);
+      selectedYear=selectedDate.getFullYear();
+      weekAnchorDate=new Date(selectedDate);
+      renderAll();
+    });
+    wrapper.appendChild(button);
+  }
+}
+
+function renderMonthlyGoal(monthBalance){
+  const input=document.getElementById("monthlyGoalInput");
+  const bar=document.getElementById("goalProgressBar");
+  const current=document.getElementById("goalCurrent");
+  const percentEl=document.getElementById("goalPercent");
+  if(!input||!bar||!current||!percentEl)return;
+
+  const goal=Number(localStorage.getItem(getGoalStorageKey())||0);
+  if(document.activeElement!==input)input.value=goal||"";
+
+  const positiveBalance=Math.max(0,Number(monthBalance)||0);
+  const percent=goal>0?(positiveBalance/goal)*100:0;
+  bar.style.width=`${Math.min(percent,100)}%`;
+  current.textContent=`${money(monthBalance)} de ${money(goal)}`;
+  percentEl.textContent=`${Math.round(percent)}%`;
+}
+
 
 async function getAll(){
   setSyncStatus("Sincronizando...");
@@ -996,6 +1316,9 @@ function renderAll(){
   monthBalanceEl.textContent=money(monthTotals.balance);
   monthBalanceEl.classList.toggle("zero-value",monthTotals.balance===0);
 
+  renderWeekCalendar();
+  renderMonthlyGoal(monthTotals.balance);
+
   const filteredDayRecords=historyFilter==="todos"
     ? dayRecords
     : dayRecords.filter(record=>record.type===historyFilter);
@@ -1065,8 +1388,8 @@ document.getElementById("expenseBtn").addEventListener("click",()=>openModal("sa
 document.getElementById("closeModal").addEventListener("click",closeModal);
 document.getElementById("cancelModal").addEventListener("click",closeModal);
 document.getElementById("modalBackdrop").addEventListener("click",e=>{if(e.target.id==="modalBackdrop")closeModal();});
-document.getElementById("prevDay").addEventListener("click",()=>{const d=new Date(selectedDate);d.setDate(d.getDate()-1);if(d.getFullYear()>=2026){selectedDate=d;selectedYear=d.getFullYear();renderAll();}});
-document.getElementById("nextDay").addEventListener("click",()=>{const d=new Date(selectedDate);d.setDate(d.getDate()+1);if(d.getFullYear()<=2030){selectedDate=d;selectedYear=d.getFullYear();renderAll();}});
+
+
 
 document.getElementById("recordForm").addEventListener("submit",async event=>{
   event.preventDefault();
@@ -1198,6 +1521,33 @@ document.getElementById("exportPdfBtn").addEventListener("click",()=>{
   }
 });
 
+document.getElementById("themeToggle").addEventListener("click",()=>{
+  const isLight=document.body.classList.toggle("light-mode");
+  localStorage.setItem("caixaDetonaTheme",isLight?"light":"dark");
+  document.getElementById("themeToggle").textContent=isLight?"🌙":"☀️";
+});
+
+document.getElementById("monthlyGoalInput").addEventListener("input",event=>{
+  const value=Math.max(0,Number(event.target.value)||0);
+  localStorage.setItem(getGoalStorageKey(),String(value));
+  const monthRecords=allRecords.filter(record=>{
+    const date=new Date(record.date+"T12:00:00");
+    return date.getFullYear()===selectedDate.getFullYear() && date.getMonth()===selectedDate.getMonth();
+  });
+  renderMonthlyGoal(totals(monthRecords).balance);
+});
+
+
+document.getElementById("prevWeek").addEventListener("click",()=>{
+  weekAnchorDate.setDate(weekAnchorDate.getDate()-7);
+  renderWeekCalendar();
+});
+
+document.getElementById("nextWeek").addEventListener("click",()=>{
+  weekAnchorDate.setDate(weekAnchorDate.getDate()+7);
+  renderWeekCalendar();
+});
+
 const privacyState={
   dayIncome:localStorage.getItem("caixaDetonaBlur_dayIncome")==="1",
   dayExpense:localStorage.getItem("caixaDetonaBlur_dayExpense")==="1",
@@ -1277,7 +1627,6 @@ function closeSearchModal(){
   document.getElementById("searchBackdrop").classList.remove("open");
 }
 
-document.getElementById("openSearch").addEventListener("click",openSearchModal);
 document.getElementById("closeSearch").addEventListener("click",closeSearchModal);
 document.getElementById("searchBackdrop").addEventListener("click",event=>{
   if(event.target.id==="searchBackdrop")closeSearchModal();
@@ -1345,6 +1694,11 @@ document.getElementById("importJsonInput").addEventListener("change",async event
 
 sb.auth.onAuthStateChange((_event,session)=>{showApp(session);});
 (async function init(){
+  const savedTheme=localStorage.getItem("caixaDetonaTheme");
+  const useLight=savedTheme==="light";
+  document.body.classList.toggle("light-mode",useLight);
+  document.getElementById("themeToggle").textContent=useLight?"🌙":"☀️";
+
   const {data:{session}}=await sb.auth.getSession();
   await showApp(session);
   if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("service-worker.js").catch(console.warn);
