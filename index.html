@@ -261,12 +261,78 @@ button.action:hover{
   margin-top:4px;
 }
 
-.delete{
-  border:0;
+.record-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+}
+
+.record-action{
+  width:36px;
+  height:36px;
+  display:grid;
+  place-items:center;
+  border:1px solid transparent;
+  border-radius:10px;
   background:transparent;
-  color:var(--red);
   cursor:pointer;
-  font-size:18px;
+  font-size:17px;
+  transition:.2s ease;
+}
+
+.edit{
+  color:var(--cyan);
+}
+
+.edit:hover{
+  background:rgba(0,217,223,.10);
+  border-color:rgba(0,217,223,.22);
+}
+
+.delete{
+  color:var(--red);
+}
+
+.delete:hover{
+  background:rgba(255,91,113,.10);
+  border-color:rgba(255,91,113,.22);
+}
+
+.actions-row{
+  margin-top:28px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  flex-wrap:wrap;
+}
+
+.actions-row .actions{
+  margin-top:0;
+}
+
+.day-balance-mini{
+  min-width:190px;
+  padding:12px 16px;
+  border:1px solid var(--line);
+  border-radius:15px;
+  background:rgba(7,23,16,.68);
+  backdrop-filter:blur(10px);
+  text-align:right;
+}
+
+.day-balance-mini span{
+  display:block;
+  color:rgba(255,255,255,.52);
+  font-size:11px;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+
+.day-balance-mini strong{
+  font-size:20px;
 }
 
 .empty{
@@ -377,8 +443,10 @@ input:focus,textarea:focus{
   .logo{height:58px}
   .months{gap:7px}
   .month{padding:9px 11px;font-size:13px}
+  .actions-row{display:grid}
   .actions{display:grid;grid-template-columns:1fr}
   button.action{width:100%}
+  .day-balance-mini{width:100%;text-align:left}
 }
 
 .card-title-row{
@@ -587,9 +655,16 @@ input:focus,textarea:focus{
     </div>
   </div>
 
-  <div class="actions">
-    <button class="action primary" id="incomeBtn">+ Novo lançamento</button>
-    <button class="action secondary" id="expenseBtn">Saída caixa</button>
+  <div class="actions-row">
+    <div class="actions">
+      <button class="action primary" id="incomeBtn">+ Novo lançamento</button>
+      <button class="action secondary" id="expenseBtn">Saída caixa</button>
+    </div>
+
+    <div class="day-balance-mini">
+      <span>Saldo do dia</span>
+      <strong id="dayBalance">R$ 0,00</strong>
+    </div>
   </div>
 
   <section class="history">
@@ -626,13 +701,14 @@ input:focus,textarea:focus{
 </div>
 
 <script>
-const SUPABASE_URL = "https://ybirlneogqjhlivekmyr.supabase.co";
+const SUPABASE_URL = "https://ybirlneoggjhlivekmyr.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_x9Xb3-eAeq1fBGhdRpcbbQ_MdbzftP0";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 let selectedDate = new Date();
 let selectedYear = selectedDate.getFullYear();
 let selectedType = "entrada";
+let editingRecordId = null;
 let allRecords = [];
 let authMode = "login";
 
@@ -693,6 +769,17 @@ async function addRecord(record){
     valor:Number(record.value),
     data:record.date
   });
+  if(error) throw error;
+}
+
+async function updateRecord(id, changes){
+  const { error } = await sb
+    .from("movimentacoes")
+    .update({
+      descricao:changes.description,
+      valor:Number(changes.value)
+    })
+    .eq("id",id);
   if(error) throw error;
 }
 
@@ -757,16 +844,30 @@ function renderAll(){
   });
   const dayTotals=totals(dayRecords), monthTotals=totals(monthRecords);
   document.getElementById("dayIncome").textContent=money(dayTotals.income);
-  document.getElementById("dayExpense").textContent=money(dayTotals.expense);
+  document.getElementById("dayExpense").textContent=dayTotals.expense>0?`- ${money(dayTotals.expense)}`:money(0);
   document.getElementById("monthBalance").textContent=money(monthTotals.balance);
+
+  const dayBalanceEl=document.getElementById("dayBalance");
+  dayBalanceEl.textContent=money(dayTotals.balance);
+  dayBalanceEl.className=dayTotals.balance>0?"green":dayTotals.balance<0?"red":"";
+
   const list=document.getElementById("historyList");
   if(!dayRecords.length){list.innerHTML='<div class="empty">Nenhum lançamento neste dia.</div>';return;}
   list.innerHTML=dayRecords.map(record=>`<div class="record">
     <span class="badge ${record.type==="entrada"?"in":"out"}">${record.type}</span>
     <div><strong>${escapeHtml(record.description||"Sem descrição")}</strong><small>${record.date.split("-").reverse().join("/")}</small></div>
     <strong class="${record.type==="entrada"?"green":"red"}">${record.type==="entrada"?"+":"-"} ${money(record.value)}</strong>
-    <button class="delete" data-delete="${record.id}" aria-label="Excluir">✕</button>
+    <div class="record-actions">
+      <button class="record-action edit" data-edit="${record.id}" aria-label="Editar lançamento" title="Editar">✎</button>
+      <button class="record-action delete" data-delete="${record.id}" aria-label="Excluir lançamento" title="Excluir">✕</button>
+    </div>
   </div>`).join("");
+
+  list.querySelectorAll("[data-edit]").forEach(btn=>btn.addEventListener("click",()=>{
+    const record=dayRecords.find(item=>String(item.id)===String(btn.dataset.edit));
+    if(record) openEditModal(record);
+  }));
+
   list.querySelectorAll("[data-delete]").forEach(btn=>btn.addEventListener("click",async()=>{
     if(!confirm("Excluir este lançamento?")) return;
     try{await deleteRecord(btn.dataset.delete);await refresh();}catch(e){alert("Erro ao excluir: "+e.message);}
@@ -779,12 +880,29 @@ async function refresh(){
 }
 
 function openModal(type){
+  editingRecordId=null;
   selectedType=type;
+  document.getElementById("recordForm").reset();
   document.getElementById("modalTitle").textContent=type==="entrada"?"Novo lançamento":"Saída de caixa";
   document.getElementById("modalBackdrop").classList.add("open");
   setTimeout(()=>document.getElementById("valueInput").focus(),100);
 }
-function closeModal(){document.getElementById("modalBackdrop").classList.remove("open");document.getElementById("recordForm").reset();}
+
+function openEditModal(record){
+  editingRecordId=record.id;
+  selectedType=record.type;
+  document.getElementById("modalTitle").textContent="Editar lançamento";
+  document.getElementById("valueInput").value=Number(record.value).toFixed(2);
+  document.getElementById("descriptionInput").value=record.description||"";
+  document.getElementById("modalBackdrop").classList.add("open");
+  setTimeout(()=>document.getElementById("descriptionInput").focus(),100);
+}
+
+function closeModal(){
+  document.getElementById("modalBackdrop").classList.remove("open");
+  document.getElementById("recordForm").reset();
+  editingRecordId=null;
+}
 
 document.getElementById("incomeBtn").addEventListener("click",()=>openModal("entrada"));
 document.getElementById("expenseBtn").addEventListener("click",()=>openModal("saida"));
@@ -801,9 +919,17 @@ document.getElementById("recordForm").addEventListener("submit",async event=>{
   if(!value||value<=0)return;
   try{
     setSyncStatus("Salvando...");
-    await addRecord({date:localDateString(selectedDate),type:selectedType,value,description});
-    closeModal();await refresh();
-  }catch(error){setSyncStatus("Erro ao salvar","error");alert("Não foi possível salvar: "+error.message);}
+    if(editingRecordId){
+      await updateRecord(editingRecordId,{value,description});
+    }else{
+      await addRecord({date:localDateString(selectedDate),type:selectedType,value,description});
+    }
+    closeModal();
+    await refresh();
+  }catch(error){
+    setSyncStatus("Erro ao salvar","error");
+    alert("Não foi possível salvar: "+error.message);
+  }
 });
 
 const privacyState={
