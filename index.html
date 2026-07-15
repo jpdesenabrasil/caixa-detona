@@ -861,6 +861,29 @@ body.light-mode .toast{
 
 
 .goal-card{margin-top:60px !important;}
+
+.actions{
+  display:flex;
+  gap:14px;
+}
+
+#incomeBtn{
+  background:linear-gradient(90deg,#18f35f,#14d8ff)!important;
+  color:#00140b!important;
+  font-size:16px;
+  font-weight:700;
+  min-width:240px;
+}
+
+#expenseBtn{
+  background:linear-gradient(90deg,#ff3f67,#ff2950)!important;
+  color:#fff!important;
+  border:none!important;
+  font-size:16px;
+  font-weight:700;
+  min-width:240px;
+}
+
 </style>
 </head>
 <body>
@@ -1010,8 +1033,8 @@ body.light-mode .toast{
   
 
   <div class="actions">
-    <button class="action primary" id="incomeBtn">+ Novo lançamento</button>
-    <button class="action secondary" id="expenseBtn">Saída caixa</button>
+    <button class="action primary" id="incomeBtn">+ NOVA ENTRADA</button>
+    <button class="action secondary" id="expenseBtn">- NOVA SAÍDA</button>
   </div>
 
   <section class="history">
